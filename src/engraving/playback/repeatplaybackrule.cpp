@@ -53,12 +53,21 @@ bool RepeatPlaybackParser::parse(
         .simplified()
         .toLower();
 
+    const bool ordinalTimeOnly =
+        text.contains(
+            QRegularExpression(
+                QStringLiteral(
+                    R"(\b\d+(st|nd|rd|th)\s+time\s+only\b)")));
+
     const bool playOnly =
-        containsAny(text, {
+        ordinalTimeOnly
+        || containsAny(text, {
+            QStringLiteral("only on"),
             QStringLiteral("play only"),
             QStringLiteral("play on"),
             QStringLiteral("only on pass"),
-            QStringLiteral("only on repeat")
+            QStringLiteral("only on repeat"),
+            QStringLiteral("time only")
         });
 
     const bool mute =
