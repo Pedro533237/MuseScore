@@ -21,6 +21,7 @@
  */
 
 #include "playbackmodel.h"
+
 #include <algorithm>
 
 #include "dom/fret.h"
@@ -504,13 +505,6 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
             continue;
         }
 
-        if (item->isStaffTextBase()) {
-            RepeatPlaybackRule rule;
-            if (RepeatPlaybackParser::parse(toStaffTextBase(item)->plainText(), rule)) {
-                m_repeatPlaybackRules[item->staffIdx()] = rule;
-            }
-        }
-
         const Harmony* chordSymbol = findChordSymbol(item);
         if (!chordSymbol) {
             continue;
@@ -653,9 +647,22 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
     PlaybackEventsMap& metronomeEvents = m_playbackDataMap[METRONOME_TRACK_ID].originEvents;
 
     for (const RepeatSegment* repeatSegment : repeatList()) {
-        // A repeat-pass Staff Text is scoped to this repeated section.
-        // Do not carry "2nd time only" into the music after the repeat bar.
         m_repeatPlaybackRules.clear();
+
+        for (const Measure* ruleMeasure : repeatSegment->measureList()) {
+            for (const Segment* ruleSegment = ruleMeasure->first(); ruleSegment; ruleSegment = ruleSegment->next()) {
+                for (const EngravingItem* annotation : ruleSegment->annotations()) {
+                    if (!annotation || !annotation->part() || !annotation->isStaffTextBase()) {
+                        continue;
+                    }
+
+                    RepeatPlaybackRule rule;
+                    if (RepeatPlaybackParser::parse(toStaffTextBase(annotation)->plainText(), rule)) {
+                        m_repeatPlaybackRules[annotation->staffIdx()] = rule;
+                    }
+                }
+            }
+        }
 
         int tickPositionOffset = repeatSegment->utick - repeatSegment->tick;
         int repeatStartTick = repeatSegment->tick;
