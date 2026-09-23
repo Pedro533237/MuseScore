@@ -516,6 +516,25 @@ PalettePtr PaletteCreator::newRepeatsPalette(bool defaultPalette)
     volta->setEndings(il);
     sp->appendElement(volta, QT_TRANSLATE_NOOP("palette", "Terza volta"));
 
+    const std::vector<std::pair<const char*, const char16_t*>> repeatPassTexts {
+    { "2nd time only", u"2nd time only" },
+    { "3rd time only", u"3rd time only" },
+    { "4th time only", u"4th time only" }
+};
+
+    for (const auto& repeatPassText : repeatPassTexts) {
+        auto repeatText =
+            makeElement<StaffText>(paletteScore());
+
+    repeatText->setXmlText(
+        repeatPassText.second);
+
+    sp->appendElement(
+        repeatText,
+        QString::fromLatin1(
+            repeatPassText.first));
+}
+
     if (!defaultPalette) {
         auto vibrato = makeElement<Vibrato>(paletteScore());
         vibrato->setVibratoType(VibratoType::VIBRATO_SAWTOOTH);
