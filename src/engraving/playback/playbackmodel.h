@@ -38,6 +38,7 @@
 #include "playbackeventsrenderer.h"
 #include "playbacksetupdataresolver.h"
 #include "playbackcontext.h"
+#include "repeatplaybackrule.h"
 
 namespace mu::engraving {
 class Score;
@@ -134,9 +135,9 @@ private:
     void reloadMetronomeEvents();
 
     void processSegment(const int tickPositionOffset, const Segment* segment, const std::set<staff_idx_t>& staffIdxSet,
-                        bool isFirstChordRestSegmentOfMeasure, ChangedTrackIdSet* trackChanges);
+                        bool isFirstChordRestSegmentOfMeasure, const int repeatPass, ChangedTrackIdSet* trackChanges);
     void processMeasureRepeat(const int tickPositionOffset, const MeasureRepeat* measureRepeat, const Measure* currentMeasure,
-                              const staff_idx_t staffIdx, ChangedTrackIdSet* trackChanges);
+                              const staff_idx_t staffIdx, const int repeatPass, ChangedTrackIdSet* trackChanges);
 
     bool hasToReloadTracks(const ScoreChanges& changes) const;
     bool hasToReloadScore(const ScoreChanges& changes) const;
@@ -179,6 +180,8 @@ private:
     PlaybackContextPtr m_playbackCtx;
     std::unordered_map<InstrumentTrackId, muse::mpe::PlaybackData> m_playbackDataMap;
     std::unordered_map<InstrumentTrackId, bool> m_sendEventsOnScoreChangeMap;
+    std::map<staff_idx_t, RepeatPlaybackRule>
+    m_repeatPlaybackRules;
 
     InstrumentTrackIdSet m_changedTrackIdSet;
 

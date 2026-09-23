@@ -21,6 +21,7 @@
  */
 
 #include "playbackmodel.h"
+#include <algorithm>
 
 #include "dom/fret.h"
 #include "dom/harmony.h"
@@ -32,6 +33,7 @@
 #include "dom/staff.h"
 #include "dom/repeatlist.h"
 #include "dom/segment.h"
+#include "dom/stafftextbase.h"
 #include "dom/tie.h"
 #include "dom/tremolotwochord.h"
 
@@ -495,13 +497,23 @@ void PlaybackModel::applyContextToTrackData(const InstrumentTrackId& trackId, co
 }
 
 void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* segment, const std::set<staff_idx_t>& staffIdxSet,
-                                   bool isFirstChordRestSegmentOfMeasure, ChangedTrackIdSet* trackChanges)
+                                   bool isFirstChordRestSegmentOfMeasure, const int repeatPass, ChangedTrackIdSet* trackChanges)
 {
     for (const EngravingItem* item : segment->annotations()) {
         if (!item || !item->part()) {
             continue;
-        }
+    }
 
+    if (item->isStaffTextBase()) {
+        RepeatPlaybackRule rule;
+
+        if (RepeatPlaybackParser::parse(
+                toStaffTextBase(item)->plainText(),
+                rule)) {
+            m_repeatPlaybackRules[item->staffIdx()] =
+                rule;
+        }
+    }
         const Harmony* chordSymbol = findChordSymbol(item);
         if (!chordSymbol) {
             continue;
@@ -548,12 +560,24 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
             continue;
         }
 
+        const auto repeatRuleIt =
+            m_repeatPlaybackRules.find(staffIdx);
+
+        if (repeatRuleIt != m_repeatPlaybackRules.end()) {
+            const RepeatPlaybackRule& rule =
+                repeatRuleIt->second;
+
+        if (!rule.shouldPlay(repeatPass)) {
+        continue;
+    }
+}
+
         if (isFirstChordRestSegmentOfMeasure) {
             if (item->isMeasureRepeat()) {
                 const MeasureRepeat* measureRepeat = toMeasureRepeat(item);
                 const Measure* currentMeasure = measureRepeat->measure();
 
-                processMeasureRepeat(tickPositionOffset, measureRepeat, currentMeasure, staffIdx, trackChanges);
+                processMeasureRepeat(tickPositionOffset, measureRepeat, currentMeasure, staffIdx, repeatPass, trackChanges);
 
                 continue;
             } else if (item->voice() == 0) {
@@ -562,7 +586,7 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
                 if (currentMeasure->measureRepeatCount(staffIdx) > 0) {
                     const MeasureRepeat* measureRepeat = currentMeasure->measureRepeatElement(staffIdx);
 
-                    processMeasureRepeat(tickPositionOffset, measureRepeat, currentMeasure, staffIdx, trackChanges);
+                    processMeasureRepeat(tickPositionOffset, measureRepeat, currentMeasure, staffIdx, repeatPass, trackChanges);
                     continue;
                 }
             }
@@ -585,7 +609,7 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
 }
 
 void PlaybackModel::processMeasureRepeat(const int tickPositionOffset, const MeasureRepeat* measureRepeat, const Measure* currentMeasure,
-                                         const staff_idx_t staffIdx, ChangedTrackIdSet* trackChanges)
+                                         const staff_idx_t staffIdx, const int repeatPass, ChangedTrackIdSet* trackChanges)
 {
     if (!measureRepeat || !currentMeasure) {
         return;
@@ -617,7 +641,7 @@ void PlaybackModel::processMeasureRepeat(const int tickPositionOffset, const Mea
             chordRestSegmentNum++;
         }
 
-        processSegment(tickFrom, seg, staffToProcessIdxSet, chordRestSegmentNum == 0, trackChanges);
+        processSegment(tickFrom, seg, staffToProcessIdxSet, chordRestSegmentNum == 0, repeatPass, trackChanges);
     }
 }
 
@@ -625,6 +649,10 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
                                  ChangedTrackIdSet* trackChanges)
 {
     TRACEFUNC;
+
+        if (tickFrom == 0) {
+            m_repeatPlaybackRules.clear();
+        }
 
     std::set<staff_idx_t> staffToProcessIdxSet = m_score->staffIdxSetFromRange(trackFrom, trackTo, [](const Staff& staff) {
         return staff.isPrimaryStaff(); // skip linked staves
@@ -668,7 +696,7 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
                     chordRestSegmentNum++;
                 }
 
-                processSegment(tickPositionOffset, segment, staffToProcessIdxSet, chordRestSegmentNum == 0, trackChanges);
+                processSegment(tickPositionOffset, segment, staffToProcessIdxSet, chordRestSegmentNum == 0, std::max(1, repeatSegment->playbackCount), trackChanges);
             }
 
             if (m_metronomeEnabled) {

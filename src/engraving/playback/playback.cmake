@@ -28,6 +28,8 @@ set(PLAYBACK_SRC
     ${CMAKE_CURRENT_LIST_DIR}/playbackeventsrenderer.h
     ${CMAKE_CURRENT_LIST_DIR}/playbacksetupdataresolver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playbacksetupdataresolver.h
+    ${CMAKE_CURRENT_LIST_DIR}/repeatplaybackrule.h
+    ${CMAKE_CURRENT_LIST_DIR}/playbackcontext.cpp
     ${CMAKE_CURRENT_LIST_DIR}/renderers/renderbase.h
     ${CMAKE_CURRENT_LIST_DIR}/renderers/ornamentsrenderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/renderers/ornamentsrenderer.h
