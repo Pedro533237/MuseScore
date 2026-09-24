@@ -500,6 +500,17 @@ void PlaybackModel::applyContextToTrackData(const InstrumentTrackId& trackId, co
 void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* segment, const std::set<staff_idx_t>& staffIdxSet,
                                    bool isFirstChordRestSegmentOfMeasure, const int repeatPass, ChangedTrackIdSet* trackChanges)
 {
+    const Measure* currentMeasure = segment->measure();
+    const Measure* previousMeasure = currentMeasure ? currentMeasure->prevMeasureMM() : nullptr;
+
+    // The first measure after an end-repeat belongs to the normal
+    // continuation. Clear repeat-pass rules before processing any note,
+    // including whole notes and longer durations.
+    if (previousMeasure && previousMeasure->repeatEnd()) {
+        m_repeatPlaybackRules.clear();
+        m_repeatPlaybackRuleEndTicks.clear();
+    }
+
     for (const EngravingItem* item : segment->annotations()) {
         if (!item || !item->part()) {
             continue;
