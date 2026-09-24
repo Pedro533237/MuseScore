@@ -723,6 +723,11 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
                 m_renderer.renderMetronome(m_score, measure, tickPositionOffset, metronomeProfile, metronomeEvents);
                 collectChangesTracks(METRONOME_TRACK_ID, trackChanges);
             }
+
+            if (measure->repeatEnd()) {
+                m_repeatPlaybackRules.clear();
+                m_repeatPlaybackRuleEndTicks.clear();
+            }
         }
     }
 }
