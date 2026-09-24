@@ -180,8 +180,8 @@ private:
     PlaybackContextPtr m_playbackCtx;
     std::unordered_map<InstrumentTrackId, muse::mpe::PlaybackData> m_playbackDataMap;
     std::unordered_map<InstrumentTrackId, bool> m_sendEventsOnScoreChangeMap;
-    std::map<staff_idx_t, RepeatPlaybackRule>
-    m_repeatPlaybackRules;
+    std::map<staff_idx_t, RepeatPlaybackRule> m_repeatPlaybackRules;
+    std::map<staff_idx_t, int> m_repeatPlaybackRuleEndTicks;
 
     InstrumentTrackIdSet m_changedTrackIdSet;
 

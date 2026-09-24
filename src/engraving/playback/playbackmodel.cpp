@@ -554,7 +554,14 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
         const auto repeatRuleIt = m_repeatPlaybackRules.find(staffIdx);
         if (repeatRuleIt != m_repeatPlaybackRules.end()
             && !repeatRuleIt->second.shouldPlay(repeatPass)) {
-            continue;
+            const auto endTickIt = m_repeatPlaybackRuleEndTicks.find(staffIdx);
+            const bool stillInsideRepeatedSection =
+                endTickIt == m_repeatPlaybackRuleEndTicks.end()
+                || segment->tick().ticks() <= endTickIt->second;
+
+            if (stillInsideRepeatedSection) {
+                continue;
+            }
         }
 
         if (isFirstChordRestSegmentOfMeasure) {
@@ -648,6 +655,15 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
 
     for (const RepeatSegment* repeatSegment : repeatList()) {
         m_repeatPlaybackRules.clear();
+        m_repeatPlaybackRuleEndTicks.clear();
+
+        int repeatRuleEndTick = repeatSegment->endTick();
+        for (const Measure* ruleMeasure : repeatSegment->measureList()) {
+            if (ruleMeasure->repeatEnd()) {
+                repeatRuleEndTick = ruleMeasure->endTick().ticks();
+                break;
+            }
+        }
 
         for (const Measure* ruleMeasure : repeatSegment->measureList()) {
             for (const Segment* ruleSegment = ruleMeasure->first(); ruleSegment; ruleSegment = ruleSegment->next()) {
@@ -659,6 +675,7 @@ void PlaybackModel::updateEvents(const int tickFrom, const int tickTo, const tra
                     RepeatPlaybackRule rule;
                     if (RepeatPlaybackParser::parse(toStaffTextBase(annotation)->plainText(), rule)) {
                         m_repeatPlaybackRules[annotation->staffIdx()] = rule;
+                        m_repeatPlaybackRuleEndTicks[annotation->staffIdx()] = repeatRuleEndTick;
                     }
                 }
             }
