@@ -503,9 +503,6 @@ void PlaybackModel::processSegment(const int tickPositionOffset, const Segment* 
     const Measure* currentMeasure = segment->measure();
     const Measure* previousMeasure = currentMeasure ? currentMeasure->prevMeasureMM() : nullptr;
 
-    // The first measure after an end-repeat belongs to the normal
-    // continuation. Clear repeat-pass rules before processing any note,
-    // including whole notes and longer durations.
     if (previousMeasure && previousMeasure->repeatEnd()) {
         m_repeatPlaybackRules.clear();
         m_repeatPlaybackRuleEndTicks.clear();
